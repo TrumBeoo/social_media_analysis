@@ -1,13 +1,45 @@
-# Social Media Analysis Project
+# Social Media Analysis Project - Restructured
 
 ## Tổng quan
-Project phân tích dữ liệu mạng xã hội về chủ đề "AI trong Giáo dục" sử dụng snscrape thay vì Twitter API để thu thập dữ liệu mà không cần Bearer token.
+Project phân tích dữ liệu mạng xã hội về chủ đề "AI trong Giáo dục" được tái cấu trúc từ Jupyter Notebook thành các module Python riêng biệt.
 
-## Thay đổi chính
-- ✅ **Thay thế Tweepy bằng snscrape**: Không cần API key hay Bearer token
-- ✅ **Thu thập dữ liệu miễn phí**: Sử dụng web scraping thay vì API có giới hạn
-- ✅ **Tăng khả năng thu thập**: Có thể lấy tweets cũ hơn 7 ngày
-- ✅ **Thêm thông tin user**: Username, số followers
+## Cấu trúc thư mục mới
+
+```
+social_media_analysis/
+├── src/                          # Source code chính
+│   ├── config/                   # Cấu hình
+│   │   └── database.py          # Kết nối MongoDB
+│   ├── data_collection/         # Thu thập dữ liệu
+│   │   ├── twitter_crawler.py   # Thu thập Twitter
+│   │   └── reddit_crawler.py    # Thu thập Reddit
+│   ├── analysis/                # Phân tích dữ liệu
+│   │   ├── sentiment_analyzer.py    # Phân tích cảm xúc
+│   │   ├── trend_analyzer.py        # Phân tích xu hướng
+│   │   └── advanced_analyzer.py     # Phân tích nâng cao
+│   ├── dashboard/               # Dashboard
+│   │   └── dash_app.py         # Dash dashboard
+│   └── utils/                   # Tiện ích
+│       ├── mock_data_generator.py   # Tạo dữ liệu mẫu
+│       └── report_exporter.py       # Xuất báo cáo
+├── data/                        # Dữ liệu thô
+├── reports/                     # Báo cáo xuất ra
+├── tests/                       # Unit tests
+├── main.py                      # Entry point chính
+├── requirements.txt             # Dependencies
+└── README_NEW.md               # Hướng dẫn mới
+```
+
+
+# Chỉ thu thập dữ liệu
+python collect_data.py
+
+# Chỉ phân tích dữ liệu
+python analyze_data.py
+
+# Chỉ dashboard
+python run_dashboard.py
+
 
 ## Cài đặt
 
@@ -16,103 +48,144 @@ Project phân tích dữ liệu mạng xã hội về chủ đề "AI trong Giá
 pip install -r requirements.txt
 ```
 
-### 2. Chạy thu thập dữ liệu Twitter
+### 2. Chạy ứng dụng
 ```bash
-python twitter_snscrape.py
+python main.py
 ```
 
-### 3. Chạy Jupyter Notebook
+## Các module chính
+
+### 1. Database Configuration (`src/config/database.py`)
+- Quản lý kết nối MongoDB
+- Tạo collections và indexes
+
+### 2. Data Collection
+- **Twitter Crawler**: Thu thập tweets bằng snscrape
+- **Reddit Crawler**: Thu thập posts từ Reddit bằng PRAW
+
+### 3. Analysis Modules
+- **Sentiment Analyzer**: Phân tích cảm xúc tiếng Việt và Anh
+- **Trend Analyzer**: Phân tích xu hướng và thống kê
+- **Advanced Analyzer**: Topic modeling, correlation analysis
+
+### 4. Dashboard (`src/dashboard/dash_app.py`)
+- Interactive dashboard với Dash
+- Biểu đồ real-time
+- Filters và controls
+
+### 5. Utilities
+- **Mock Data Generator**: Tạo dữ liệu test
+- **Report Exporter**: Xuất báo cáo CSV, JSON
+
+## Sử dụng từng module riêng
+
+### Thu thập dữ liệu Twitter
+```python
+from src.config.database import DatabaseConfig
+from src.data_collection.twitter_crawler import TwitterCrawler
+
+db = DatabaseConfig().connect()
+crawler = TwitterCrawler(db)
+crawler.collect_topics(["AI education"], max_results_per_topic=100)
+```
+
+### Phân tích cảm xúc
+```python
+from src.analysis.sentiment_analyzer import SentimentAnalyzer
+
+analyzer = SentimentAnalyzer(db)
+analyzer.analyze_all_posts()
+```
+
+### Chạy dashboard
+```python
+from src.dashboard.dash_app import DashboardApp
+
+dashboard = DashboardApp(db)
+dashboard.run(port=8050)
+```
+
+## Ưu điểm của cấu trúc mới
+
+### ✅ Modular Design
+- Mỗi chức năng trong module riêng
+- Dễ maintain và debug
+- Có thể test từng module
+
+### ✅ Scalability
+- Dễ thêm data sources mới
+- Dễ mở rộng analysis methods
+- Có thể deploy từng phần
+
+### ✅ Reusability
+- Các module có thể dùng lại
+- Import theo nhu cầu
+- Không phụ thuộc Jupyter
+
+### ✅ Production Ready
+- Có thể chạy như service
+- Error handling tốt hơn
+- Logging và monitoring
+
+## Workflow chính
+
+1. **Database Connection**: Kết nối MongoDB
+2. **Data Collection**: Thu thập từ Twitter, Reddit
+3. **Data Processing**: Sentiment analysis, trend analysis
+4. **Advanced Analysis**: Topic modeling, correlations
+5. **Export Results**: CSV, JSON reports
+6. **Dashboard**: Interactive visualization
+
+## Chạy từng phần riêng
+
+### Chỉ thu thập dữ liệu
+```python
+from src.config.database import DatabaseConfig
+from src.data_collection.twitter_crawler import TwitterCrawler
+
+db = DatabaseConfig().connect()
+crawler = TwitterCrawler(db)
+# Thu thập dữ liệu...
+```
+
+### Chỉ phân tích
+```python
+from src.analysis.sentiment_analyzer import SentimentAnalyzer
+from src.analysis.trend_analyzer import TrendAnalyzer
+
+# Phân tích dữ liệu có sẵn...
+```
+
+### Chỉ dashboard
+```python
+from src.dashboard.dash_app import DashboardApp
+
+dashboard = DashboardApp(db)
+dashboard.run()
+```
+
+## Testing
+
+Mỗi module có thể test riêng:
 ```bash
-jupyter notebook main.ipynb
+python -m pytest tests/test_sentiment_analyzer.py
+python -m pytest tests/test_twitter_crawler.py
 ```
 
-## Ưu điểm của snscrape
+## Deployment
 
-### So với Twitter API:
-- ❌ **Twitter API**: Cần đăng ký developer account, có giới hạn rate limit
-- ✅ **snscrape**: Hoàn toàn miễn phí, không cần đăng ký
+Có thể deploy:
+- Dashboard như web app
+- Data collection như scheduled job
+- Analysis như batch processing
 
-### Tính năng:
-- Thu thập tweets theo từ khóa
-- Lọc theo ngày tháng
-- Lấy thông tin engagement (likes, retweets, replies)
-- Trích xuất hashtags tự động
-- Thông tin user (username, followers)
+## Migration từ Notebook
 
-## Cấu trúc Project
+Tất cả code từ `main.ipynb` đã được tách thành:
+- 11 modules Python riêng biệt
+- Cấu trúc rõ ràng theo chức năng
+- Dễ maintain và scale
 
-```
-social_media_analysis/
-├── main.ipynb              # Notebook chính
-├── twitter_snscrape.py     # Script thu thập Twitter riêng
-├── requirements.txt        # Dependencies
-└── README.md              # Hướng dẫn này
-```
+Chạy `python main.py` để có workflow tương tự notebook nhưng với cấu trúc tốt hơn.
 
-## Sử dụng
 
-### 1. Thu thập dữ liệu Twitter
-```python
-from twitter_snscrape import TwitterCrawler
-
-crawler = TwitterCrawler()
-tweets = crawler.search_tweets("AI education", max_results=100)
-```
-
-### 2. Tùy chỉnh query
-```python
-# Lấy tweets từ ngày cụ thể
-tweets = crawler.search_tweets("AI giáo dục", since_date="2024-01-01")
-
-# Kết hợp nhiều từ khóa
-tweets = crawler.search_tweets("AI education OR machine learning")
-```
-
-### 3. Lưu vào MongoDB
-```python
-crawler.save_to_mongodb(tweets, mongo_uri)
-```
-
-## Các chủ đề thu thập
-
-1. "AI education"
-2. "trí tuệ nhân tạo giáo dục"
-3. "AI học tập"
-4. "#AIEducation"
-5. "machine learning giáo dục"
-
-## Tính năng phân tích
-
-- 📊 **Sentiment Analysis**: Phân tích cảm xúc tiếng Việt và tiếng Anh
-- 📈 **Trend Analysis**: Xu hướng theo thời gian
-- #️⃣ **Hashtag Analysis**: Top hashtags phổ biến
-- 🎯 **Topic Modeling**: Phân loại chủ đề tự động
-- 📱 **Interactive Dashboard**: Dash và Streamlit
-
-## Lưu ý
-
-### Giới hạn của snscrape:
-- Có thể bị rate limit nếu thu thập quá nhiều
-- Cần cập nhật thường xuyên do Twitter thay đổi
-- Không có quyền truy cập API chính thức
-
-### Khuyến nghị:
-- Thu thập từng đợt nhỏ (50-100 tweets/lần)
-- Thêm delay giữa các request
-- Kiểm tra trùng lặp trước khi lưu DB
-
-## Troubleshooting
-
-### Lỗi cài đặt snscrape:
-```bash
-pip install --upgrade snscrape
-```
-
-### Lỗi kết nối MongoDB:
-- Kiểm tra connection string
-- Đảm bảo IP được whitelist
-
-### Lỗi thu thập tweets:
-- Thử giảm max_results
-- Kiểm tra query syntax
-- Thêm delay giữa requests

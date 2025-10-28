@@ -1,0 +1,108 @@
+{
+  "metadata": {
+    "generated_at": "2025-10-28T15:56:57.392037",
+    "total_records": 2900,
+    "date_range": {
+      "start": "2025-07-17T23:22:59.207000",
+      "end": "2025-10-28T14:51:12.084000"
+    }
+  },
+  "analysis": {
+    "topic_analysis": [
+      {
+        "_id": "EdTech",
+        "total_posts": 768,
+        "positive": 152,
+        "negative": 326,
+        "neutral": 290,
+        "avg_sentiment_score": -0.11952473958333333,
+        "avg_likes": 496.14529914529913,
+        "positive_pct": 19.79,
+        "negative_pct": 42.45,
+        "neutral_pct": 37.76
+      },
+      {
+        "_id": "học máy",
+        "total_posts": 532,
+        "positive": 91,
+        "negative": 326,
+        "neutral": 115,
+        "avg_sentiment_score": -0.28289473684210525,
+        "avg_likes": 518.1184210526316,
+        "positive_pct": 17.11,
+        "negative_pct": 61.28,
+        "neutral_pct": 21.62
+      },
+      {
+        "_id": "AI trong giáo dục",
+        "total_posts": 512,
+        "positive": 87,
+        "negative": 322,
+        "neutral": 103,
+        "avg_sentiment_score": -0.2927734375,
+        "avg_likes": 496.650390625,
+        "positive_pct": 16.99,
+        "negative_pct": 62.89,
+        "neutral_pct": 20.12
+      },
+      {
+        "_id": "trí tuệ nhân tạo",
+        "total_posts": 488,
+        "positive": 80,
+        "negative": 287,
+        "neutral": 121,
+        "avg_sentiment_score": -0.2735655737704918,
+        "avg_likes": 499.6905737704918,
+        "positive_pct": 16.39,
+        "negative_pct": 58.81,
+        "neutral_pct": 24.8
+      },
+      {
+        "_id": "artificial intelligence learning",
+        "total_posts": 300,
+        "positive": 77,
+        "negative": 34,
+        "neutral": 189,
+        "avg_sentiment_score": 0.15268333333333334,
+        "avg_likes": NaN,
+        "positive_pct": 25.67,
+        "negative_pct": 11.33,
+        "neutral_pct": 63.0
+      },
+      {
+        "_id": "AI education",
+        "total_posts": 300,
+        "positive": 35,
+        "negative": 45,
+        "neutral": 220,
+        "avg_sentiment_score": -0.003933333333333332,
+        "avg_likes": NaN,
+        "positive_pct": 11.67,
+        "negative_pct": 15.0,
+        "neutral_pct": 73.33
+      }
+    ],
+    "hashtag_analysis": {
+      "TríTuệNhânTạo": 520,
+      "GiáoDục": 510,
+      "CôngNghệGiáoDục": 508,
+      "AIEducation": 500,
+      "DeepLearning": 497,
+      "HọcTậpAI": 497,
+      "MachineLearning": 485,
+      "EdTech": 482
+    },
+    "engagement_stats": {
+      "avg_likes": 502.9845,
+      "avg_retweets": 246.6455,
+      "avg_replies": 100.2925,
+      "avg_score": 9.172222222222222,
+      "total_posts": 2900,
+      "sentiment_distribution": {
+        "negative": 1340,
+        "neutral": 1038,
+        "positive": 522
+      }
+    }
+  }
+}

@@ -1,0 +1,18 @@
+================================================================================
+SOCIAL MEDIA ANALYSIS SUMMARY
+================================================================================
+
+Dataset Size: 2,900 posts
+Date Range: 2025-07-17 to 2025-10-28
+
+SENTIMENT DISTRIBUTION:
+  - Negative: 1,340 (46.2%)
+  - Neutral: 1,038 (35.8%)
+  - Positive: 522 (18.0%)
+
+TOP 5 TOPICS:
+  1. EdTech: 768 posts
+  2. học máy: 532 posts
+  3. AI trong giáo dục: 512 posts
+  4. trí tuệ nhân tạo: 488 posts
+  5. AI education: 300 posts
