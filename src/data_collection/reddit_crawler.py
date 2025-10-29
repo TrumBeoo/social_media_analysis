@@ -47,11 +47,11 @@ class RedditCrawler:
         """Lưu vào MongoDB"""
         if posts_data:
             self.posts_collection.insert_many(posts_data)
-            print(f"✅ Saved {len(posts_data)} Reddit posts to MongoDB")
+            print(f" Saved {len(posts_data)} Reddit posts to MongoDB")
     
     def collect_topics(self, topics, limit_per_topic=100):
         """Thu thập dữ liệu cho nhiều chủ đề"""
         for topic in topics:
-            print(f"🔍 Collecting Reddit posts about: {topic}")
+            print(f" Collecting Reddit posts about: {topic}")
             posts = self.search_posts(topic, limit=limit_per_topic)
             self.save_to_mongodb(posts)

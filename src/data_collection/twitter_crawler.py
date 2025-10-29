@@ -66,14 +66,14 @@ class TwitterCrawler:
             
             if new_tweets:
                 self.posts_collection.insert_many(new_tweets)
-                print(f"✅ Saved {len(new_tweets)} new tweets to MongoDB")
+                print(f" Saved {len(new_tweets)} new tweets to MongoDB")
             else:
-                print("ℹ️ No new tweets to save")
+                print("ℹ No new tweets to save")
     
     def collect_topics(self, topics, max_results_per_topic=50):
         """Thu thập dữ liệu cho nhiều chủ đề"""
         for topic in topics:
-            print(f"🔍 Collecting tweets about: {topic}")
+            print(f" Collecting tweets about: {topic}")
             tweets = self.search_tweets(topic, max_results=max_results_per_topic)
             self.save_to_mongodb(tweets)
             print(f"Found {len(tweets)} tweets\n")

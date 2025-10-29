@@ -18,18 +18,18 @@ from dashboard.dash_app import DashboardApp
 
 def main():
     """Main application workflow"""
-    print("🚀 Starting Social Media Analysis Application")
+    print("Starting Social Media Analysis Application")
     
     # 1. Database Connection
     db_config = DatabaseConfig()
     db = db_config.connect()
     
     if db is None:
-        print("❌ Failed to connect to database. Exiting...")
+        print(" Failed to connect to database. Exiting...")
         return
     
     # 2. Data Collection
-    print("\n📊 Data Collection Phase")
+    print("\nData Collection Phase")
     
     # Twitter data collection
     twitter_crawler = TwitterCrawler(db)
@@ -57,7 +57,7 @@ def main():
     mock_generator.generate_and_save(1000)
     
     # 3. Analysis Phase
-    print("\n🔍 Analysis Phase")
+    print("\nAnalysis Phase")
     
     # Sentiment Analysis
     sentiment_analyzer = SentimentAnalyzer(db)
@@ -66,7 +66,7 @@ def main():
     # Trend Analysis
     trend_analyzer = TrendAnalyzer(db)
     topic_analysis = trend_analyzer.analyze_by_topic()
-    print("\n📊 Sentiment Analysis by Topic:")
+    print("\nSentiment Analysis by Topic:")
     print(topic_analysis)
     trend_analyzer.generate_report()
     
@@ -75,7 +75,7 @@ def main():
     advanced_analyzer.generate_advanced_report()
     
     # 4. Export Results
-    print("\n📤 Export Phase")
+    print("\nExport Phase")
     exporter = ReportExporter(db)
     exporter.export_to_csv()
     
@@ -90,20 +90,32 @@ def main():
     exporter.create_presentation_summary(report_data)
     
     # 5. Dashboard
-    print("\n🎯 Dashboard Phase")
+    print("\n Dashboard Phase")
     dashboard = DashboardApp(db)
     
-    print("\n✅ Analysis completed successfully!")
+    print("\nAnalysis completed successfully!")
     print("Choose an option:")
     print("1. Run Dashboard")
-    print("2. Exit")
+    print("2. Crawl URL")
+    print("3. Exit")
     
-    choice = input("Enter your choice (1-2): ")
+    choice = input("Enter your choice (1-3): ")
     
     if choice == "1":
         dashboard.run(debug=True, port=8050)
-    else:
-        print("👋 Goodbye!")
+    elif choice == "2":
+        url = input("Enter URL to crawl: ")
+        topic = input("Enter topic (optional): ")
+        
+        from data_collection.url_crawler import URLCrawler
+        crawler = URLCrawler(db)
+        post_id = crawler.crawl_url(url, topic or None)
+        
+        if post_id:
+            sentiment_analyzer.analyze_all_posts()
+            print(f"URL crawled and analyzed! Post ID: {post_id}")
+    elif choice == "3":
+        print("Goodbye!")
 
 if __name__ == "__main__":
     main()
