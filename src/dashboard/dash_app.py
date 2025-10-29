@@ -1,7 +1,8 @@
 # src/dashboard/dash_app.py - PHIÊN BẢN NÂNG CẤP
 """Dash dashboard for social media analysis - Enhanced Version"""
+import os
 import dash
-from dash import dcc, html, Input, Output, State, dash_table
+from dash import dcc, html, Input, Output, State, dash_table, callback_context
 import dash_bootstrap_components as dbc
 import plotly.express as px
 import plotly.graph_objects as go
@@ -278,8 +279,210 @@ class DashboardApp:
             
         ], fluid=True)
     
+    def create_auto_crawler_tab(self):
+        """Tab Auto Data Collection"""
+        return dbc.Container([
+            dbc.Row([
+                dbc.Col([
+                    html.H2([
+                        html.I(className="fas fa-robot me-3"),
+                        "Tự động Thu thập Dữ liệu"
+                    ], className="mb-4"),
+                    html.P("Thu thập dữ liệu tự động từ các nguồn khác nhau", className="text-muted"),
+                ])
+            ]),
+            
+            # Quick Collection Section
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Thu thập Nhanh", className="bg-success text-white"),
+                        dbc.CardBody([
+                            dbc.Row([
+                                dbc.Col([
+                                    dbc.Button(
+                                        [html.I(className="fas fa-newspaper me-2"), "Google News (30)"],
+                                        id='quick-google-btn',
+                                        color='primary',
+                                        className='w-100 mb-2',
+                                        size='lg'
+                                    )
+                                ], width=6),
+                                dbc.Col([
+                                    dbc.Button(
+                                        [html.I(className="fab fa-reddit me-2"), "Reddit (30)"],
+                                        id='quick-reddit-btn',
+                                        color='danger',
+                                        className='w-100 mb-2',
+                                        size='lg'
+                                    )
+                                ], width=6),
+                            ]),
+                            dbc.Row([
+                                dbc.Col([
+                                    dbc.Button(
+                                        [html.I(className="fab fa-medium me-2"), "Medium (20)"],
+                                        id='quick-medium-btn',
+                                        color='dark',
+                                        className='w-100 mb-2',
+                                        size='lg'
+                                    )
+                                ], width=6),
+                                dbc.Col([
+                                    dbc.Button(
+                                        [html.I(className="fas fa-code me-2"), "Stack Overflow (30)"],
+                                        id='quick-stackoverflow-btn',
+                                        color='warning',
+                                        className='w-100 mb-2',
+                                        size='lg'
+                                    )
+                                ], width=6),
+                            ]),
+                            dbc.Row([
+                                dbc.Col([
+                                    dbc.Button(
+                                        [html.I(className="fas fa-fire me-2"), "Hacker News (20)"],
+                                        id='quick-hackernews-btn',
+                                        color='info',
+                                        className='w-100 mb-2',
+                                        size='lg'
+                                    )
+                                ], width=6),
+                                dbc.Col([
+                                    dbc.Button(
+                                        [html.I(className="fas fa-rocket me-2"), "Thu thập Tất cả"],
+                                        id='quick-all-btn',
+                                        color='success',
+                                        className='w-100 mb-2',
+                                        size='lg'
+                                    )
+                                ], width=6),
+                            ]),
+                            html.Hr(),
+                            html.Div(id='quick-collection-status')
+                        ])
+                    ])
+                ], width=8),
+                
+                # Collection Status
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Trạng thái Thu thập", className="bg-info text-white"),
+                        dbc.CardBody([
+                            html.Div(id='collection-stats', children=[
+                                html.P("Chưa có dữ liệu thu thập", className="text-muted text-center")
+                            ])
+                        ])
+                    ])
+                ], width=4)
+            ], className="mb-4"),
+            
+            # Custom Collection Section
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Thu thập Tùy chỉnh", className="bg-primary text-white"),
+                        dbc.CardBody([
+                            dbc.Row([
+                                dbc.Col([
+                                    dbc.Label("Chọn nguồn:", className="fw-bold"),
+                                    dcc.Dropdown(
+                                        id='source-dropdown',
+                                        options=[
+                                            {'label': '📰 Google News', 'value': 'google'},
+                                            {'label': '🔴 Reddit', 'value': 'reddit'},
+                                            {'label': '📝 Medium', 'value': 'medium'},
+                                            {'label': '💻 Stack Overflow', 'value': 'stackoverflow'},
+                                            {'label': '🚀 Hacker News', 'value': 'hackernews'}
+                                        ],
+                                        value='google',
+                                        className='mb-3'
+                                    )
+                                ], width=6),
+                                dbc.Col([
+                                    dbc.Label("Số lượng:", className="fw-bold"),
+                                    dbc.Input(
+                                        id='custom-count-input',
+                                        type='number',
+                                        value=20,
+                                        min=1,
+                                        max=100,
+                                        className='mb-3'
+                                    )
+                                ], width=6)
+                            ]),
+                            dbc.Label("Từ khóa tìm kiếm:", className="fw-bold"),
+                            dbc.Input(
+                                id='custom-keywords-input',
+                                type='text',
+                                placeholder='AI education, machine learning, EdTech',
+                                value='AI education',
+                                className='mb-3'
+                            ),
+                            dbc.Button(
+                                [html.I(className="fas fa-search me-2"), "Bắt đầu Thu thập"],
+                                id='custom-collect-btn',
+                                color='primary',
+                                className='w-100',
+                                size='lg'
+                            ),
+                            html.Hr(),
+                            html.Div(id='custom-collection-status')
+                        ])
+                    ])
+                ], width=8),
+                
+                # URL Crawler Section (moved here)
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Thu thập từ URL", className="bg-warning text-dark"),
+                        dbc.CardBody([
+                            dbc.Label("URL:", className="fw-bold"),
+                            dbc.Input(
+                                id='url-input',
+                                type='url',
+                                placeholder='https://...',
+                                className='mb-3'
+                            ),
+                            dbc.Label("Topic:", className="fw-bold"),
+                            dbc.Input(
+                                id='topic-input',
+                                type='text',
+                                placeholder='AI Education',
+                                className='mb-3'
+                            ),
+                            dbc.Button(
+                                [html.I(className="fas fa-download me-2"), "Crawl URL"],
+                                id='crawl-button',
+                                color='warning',
+                                className='w-100'
+                            ),
+                            html.Hr(),
+                            html.Div(id='crawl-status')
+                        ])
+                    ])
+                ], width=4)
+            ], className="mb-4"),
+            
+            # Collection History
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader([
+                            html.Span([html.I(className="fas fa-history me-2"), "Lịch sử Thu thập"], className="me-2"),
+                            dbc.Badge(id='history-count-badge', color='info')
+                        ]),
+                        dbc.CardBody([
+                            dcc.Interval(id='history-refresh-interval', interval=10000, n_intervals=0),
+                            html.Div(id='collection-history-table')
+                        ])
+                    ])
+                ])
+            ])
+        ], fluid=True)
+    
     def create_url_crawler_tab(self):
-        """Tab URL Crawler"""
+        """Tab URL Crawler (Legacy - kept for compatibility)"""
         return dbc.Container([
             dbc.Row([
                 dbc.Col([
@@ -397,20 +600,26 @@ class DashboardApp:
             # Tabs
             dbc.Tabs([
                 dbc.Tab(
-                    label="Overview", 
+                    label="📊 Overview", 
                     tab_id="overview-tab",
-                    label_style={'fontSize': '18px', 'fontWeight': 'bold'}
+                    label_style={'fontSize': '16px', 'fontWeight': 'bold'}
                 ),
                 dbc.Tab(
-                    label="URL Crawler", 
-                    tab_id="crawler-tab",
-                    label_style={'fontSize': '18px', 'fontWeight': 'bold'}
+                    label="🤖 Auto Crawler", 
+                    tab_id="auto-crawler-tab",
+                    label_style={'fontSize': '16px', 'fontWeight': 'bold'}
+                ),
+                dbc.Tab(
+                    label="🔗 URL Crawler", 
+                    tab_id="url-crawler-tab",
+                    label_style={'fontSize': '16px', 'fontWeight': 'bold'}
                 ),
             ], id="tabs", active_tab="overview-tab", className="mb-4"),
             
             # Tab content containers
             html.Div(id='overview-tab-content', children=self.create_overview_tab()),
-            html.Div(id='crawler-tab-content', children=self.create_url_crawler_tab(), style={'display': 'none'})
+            html.Div(id='auto-crawler-tab-content', children=self.create_auto_crawler_tab(), style={'display': 'none'}),
+            html.Div(id='url-crawler-tab-content', children=self.create_url_crawler_tab(), style={'display': 'none'})
             
         ], fluid=True, style={'backgroundColor': self.COLORS['background'], 'minHeight': '100vh'})
     
@@ -420,15 +629,18 @@ class DashboardApp:
         # Tab switching
         @self.app.callback(
             Output('overview-tab-content', 'style'),
-            Output('crawler-tab-content', 'style'),
+            Output('auto-crawler-tab-content', 'style'),
+            Output('url-crawler-tab-content', 'style'),
             Input('tabs', 'active_tab')
         )
         def switch_tab(active_tab):
             if active_tab == "overview-tab":
-                return {'display': 'block'}, {'display': 'none'}
-            elif active_tab == "crawler-tab":
-                return {'display': 'none'}, {'display': 'block'}
-            return {'display': 'block'}, {'display': 'none'}
+                return {'display': 'block'}, {'display': 'none'}, {'display': 'none'}
+            elif active_tab == "auto-crawler-tab":
+                return {'display': 'none'}, {'display': 'block'}, {'display': 'none'}
+            elif active_tab == "url-crawler-tab":
+                return {'display': 'none'}, {'display': 'none'}, {'display': 'block'}
+            return {'display': 'block'}, {'display': 'none'}, {'display': 'none'}
         
         # Timeline chart
         @self.app.callback(
@@ -830,8 +1042,15 @@ class DashboardApp:
                 # Prepare data for display
                 table_data = []
                 for idx, row in df_sorted.iterrows():
-                    # Truncate text
-                    text = str(row.get('text', ''))[:150] + '...' if len(str(row.get('text', ''))) > 150 else str(row.get('text', ''))
+                    # Get raw text and handle empty/null values
+                    raw_text = row.get('text', '')
+                    if pd.isna(raw_text) or not raw_text or str(raw_text).strip() == '':
+                        raw_text = 'No content available'
+                    else:
+                        raw_text = str(raw_text).strip()
+                    
+                    # Truncate text for display but keep original for length calculation
+                    display_text = raw_text[:150] + '...' if len(raw_text) > 150 else raw_text
                     
                     # Format date
                     if 'created_at' in row and pd.notna(row['created_at']):
@@ -851,7 +1070,8 @@ class DashboardApp:
                     
                     table_data.append({
                         'date': date_str,
-                        'text': text,
+                        'text': display_text,
+                        'raw_text': raw_text,  # Keep original for debugging
                         'sentiment': sentiment,
                         'score': sentiment_score,
                         'source': source,
@@ -872,11 +1092,22 @@ class DashboardApp:
                         badge_color = 'secondary'
                         badge_icon = '😐'
                     
+                    # Ensure text is not empty and properly formatted
+                    display_text = post['text'] if post['text'] and post['text'].strip() else 'No content available'
+                    if display_text == 'No content extracted':
+                        display_text = '⚠️ Content extraction failed'
+                    
                     table_rows.append(
                         html.Tr([
                             html.Td(str(i), style={'fontWeight': 'bold', 'textAlign': 'center', 'width': '50px'}),
                             html.Td(post['date'], style={'width': '150px', 'fontSize': '12px'}),
-                            html.Td(post['text'], style={'fontSize': '13px'}),
+                            html.Td(
+                                html.Div([
+                                    html.P(display_text, style={'margin': '0', 'fontSize': '13px', 'lineHeight': '1.4'}),
+                                    html.Small(f"Length: {len(post.get('raw_text', post['text']))} chars", style={'color': '#6c757d', 'fontSize': '11px'})
+                                ]),
+                                style={'maxWidth': '400px', 'wordWrap': 'break-word'}
+                            ),
                             html.Td([
                                 dbc.Badge(
                                     [badge_icon, f" {post['sentiment'].capitalize()}"],
@@ -1092,6 +1323,361 @@ class DashboardApp:
             except Exception as e:
                 print(f"Error updating recent URLs: {e}")
                 return html.P(f"Error loading URLs: {str(e)}", className="text-danger"), "0"
+        
+        # Auto Crawler Callbacks
+        @self.app.callback(
+            Output('quick-collection-status', 'children'),
+            [Input('quick-google-btn', 'n_clicks'),
+             Input('quick-reddit-btn', 'n_clicks'),
+             Input('quick-medium-btn', 'n_clicks'),
+             Input('quick-stackoverflow-btn', 'n_clicks'),
+             Input('quick-hackernews-btn', 'n_clicks'),
+             Input('quick-all-btn', 'n_clicks')],
+            prevent_initial_call=True
+        )
+        def handle_quick_collection(google_clicks, reddit_clicks, medium_clicks, stackoverflow_clicks, hackernews_clicks, all_clicks):
+            ctx = dash.callback_context
+            if not ctx.triggered:
+                return ""
+            
+            button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+            
+            try:
+                if button_id == 'quick-google-btn':
+                    return self._collect_google_news()
+                elif button_id == 'quick-reddit-btn':
+                    return self._collect_reddit()
+                elif button_id == 'quick-medium-btn':
+                    return self._collect_medium()
+                elif button_id == 'quick-stackoverflow-btn':
+                    return self._collect_stackoverflow()
+                elif button_id == 'quick-hackernews-btn':
+                    return self._collect_hackernews()
+                elif button_id == 'quick-all-btn':
+                    return self._collect_all_sources()
+            except Exception as e:
+                return dbc.Alert(f"❌ Error: {str(e)}", color="danger")
+        
+        @self.app.callback(
+            Output('custom-collection-status', 'children'),
+            Input('custom-collect-btn', 'n_clicks'),
+            State('source-dropdown', 'value'),
+            State('custom-count-input', 'value'),
+            State('custom-keywords-input', 'value'),
+            prevent_initial_call=True
+        )
+        def handle_custom_collection(n_clicks, source, count, keywords):
+            if not keywords:
+                return dbc.Alert("⚠ Please enter keywords", color="warning")
+            
+            try:
+                return self._collect_custom(source, count, keywords)
+            except Exception as e:
+                return dbc.Alert(f"❌ Error: {str(e)}", color="danger")
+        
+        @self.app.callback(
+            Output('collection-stats', 'children'),
+            [Input('quick-collection-status', 'children'),
+             Input('custom-collection-status', 'children'),
+             Input('auto-refresh-interval', 'n_intervals')]
+        )
+        def update_collection_stats(quick_status, custom_status, n_intervals):
+            try:
+                total_posts = self.posts_collection.count_documents({})
+                today_posts = self.posts_collection.count_documents({
+                    'created_at': {'$gte': datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)}
+                })
+                
+                sources = list(self.posts_collection.aggregate([
+                    {'$group': {'_id': '$source', 'count': {'$sum': 1}}},
+                    {'$sort': {'count': -1}}
+                ]))
+                
+                return [
+                    html.H5(f"📊 {total_posts:,}", className="text-primary mb-1"),
+                    html.P("Total Posts", className="text-muted mb-2"),
+                    html.H6(f"📅 {today_posts:,}", className="text-success mb-1"),
+                    html.P("Today", className="text-muted mb-3"),
+                    html.Hr(),
+                    html.P("Sources:", className="fw-bold mb-2"),
+                ] + [
+                    html.P(f"• {s['_id']}: {s['count']:,}", className="small mb-1")
+                    for s in sources[:5]
+                ]
+            except Exception as e:
+                return [html.P(f"Error: {str(e)}", className="text-danger")]
+        
+        @self.app.callback(
+            Output('collection-history-table', 'children'),
+            Output('history-count-badge', 'children'),
+            Input('history-refresh-interval', 'n_intervals')
+        )
+        def update_collection_history(n_intervals):
+            try:
+                # Get recent collection activities from posts
+                recent_posts = list(self.posts_collection.find(
+                    {}, 
+                    {'source': 1, 'created_at': 1, 'topic': 1}
+                ).sort('created_at', -1).limit(20))
+                
+                if not recent_posts:
+                    return html.P("No collection history yet", className="text-muted text-center p-4"), "0"
+                
+                table_rows = []
+                for idx, post in enumerate(recent_posts, 1):
+                    source_icon = {
+                        'google_news': '📰',
+                        'reddit': '🔴',
+                        'medium': '📝',
+                        'stackoverflow': '💻',
+                        'hackernews': '🚀',
+                        'url_crawler': '🔗'
+                    }.get(post.get('source', ''), '❓')
+                    
+                    created_at = post.get('created_at', datetime.now())
+                    if isinstance(created_at, str):
+                        created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                    
+                    table_rows.append(
+                        html.Tr([
+                            html.Td(str(idx)),
+                            html.Td([source_icon, f" {post.get('source', 'unknown')}"], style={'width': '150px'}),
+                            html.Td(post.get('topic', 'N/A')[:30] + ('...' if len(post.get('topic', '')) > 30 else '')),
+                            html.Td(created_at.strftime('%H:%M:%S'), style={'width': '100px'})
+                        ])
+                    )
+                
+                table = dbc.Table([
+                    html.Thead([
+                        html.Tr([
+                            html.Th("#", style={'width': '50px'}),
+                            html.Th("Source"),
+                            html.Th("Topic"),
+                            html.Th("Time")
+                        ])
+                    ], className="table-dark"),
+                    html.Tbody(table_rows)
+                ], bordered=True, hover=True, responsive=True, striped=True, size='sm')
+                
+                return table, str(len(recent_posts))
+            except Exception as e:
+                return html.P(f"Error: {str(e)}", className="text-danger"), "0"
+    
+    def _collect_google_news(self):
+        """Collect from Google News"""
+        try:
+            from data_collection.google_news_crawler import GoogleNewsCrawler
+            from analysis.sentiment_analyzer import SentimentAnalyzer
+            
+            crawler = GoogleNewsCrawler(self.db)
+            initial_count = self.posts_collection.count_documents({})
+            
+            crawler.collect_topics(["AI education", "artificial intelligence education"], max_results_per_query=15)
+            
+            final_count = self.posts_collection.count_documents({})
+            new_posts = final_count - initial_count
+            
+            # Analyze sentiment for new posts
+            analyzer = SentimentAnalyzer(self.db)
+            analyzer.analyze_all_posts()
+            
+            return dbc.Alert([
+                html.H5("✅ Google News Collection Complete!", className="alert-heading"),
+                html.P(f"Collected {new_posts} new posts")
+            ], color="success", dismissable=True)
+        except Exception as e:
+            return dbc.Alert(f"❌ Google News Error: {str(e)}", color="danger")
+    
+    def _collect_reddit(self):
+        """Collect from Reddit"""
+        try:
+            from data_collection.reddit_crawler import RedditCrawler
+            from analysis.sentiment_analyzer import SentimentAnalyzer
+            
+            crawler = RedditCrawler(
+                db=self.db,
+                client_id=os.getenv('REDDIT_CLIENT_ID', 'k6ozqL3mwwC0cGNUSmcdlQ'),
+                client_secret=os.getenv('REDDIT_CLIENT_SECRET', 'JR6XLrrWpp2oNi5RNk0uV2GrrCaelw'),
+                user_agent=os.getenv('REDDIT_USER_AGENT', 'windows:ai-trend-collector:v2.0')
+            )
+            initial_count = self.posts_collection.count_documents({})
+            
+            crawler.collect_topics(['AI education', 'EdTech'], limit_per_topic=15)
+            
+            final_count = self.posts_collection.count_documents({})
+            new_posts = final_count - initial_count
+            
+            analyzer = SentimentAnalyzer(self.db)
+            analyzer.analyze_all_posts()
+            
+            return dbc.Alert([
+                html.H5("✅ Reddit Collection Complete!", className="alert-heading"),
+                html.P(f"Collected {new_posts} new posts")
+            ], color="success", dismissable=True)
+        except Exception as e:
+            return dbc.Alert(f"❌ Reddit Error: {str(e)}", color="danger")
+    
+    def _collect_medium(self):
+        """Collect from Medium"""
+        try:
+            from data_collection.medium_crawler import MediumCrawler
+            from analysis.sentiment_analyzer import SentimentAnalyzer
+            
+            crawler = MediumCrawler(self.db)
+            initial_count = self.posts_collection.count_documents({})
+            
+            crawler.collect_topics(['artificial-intelligence', 'machine-learning'], max_results_per_tag=10)
+            
+            final_count = self.posts_collection.count_documents({})
+            new_posts = final_count - initial_count
+            
+            analyzer = SentimentAnalyzer(self.db)
+            analyzer.analyze_all_posts()
+            
+            return dbc.Alert([
+                html.H5("✅ Medium Collection Complete!", className="alert-heading"),
+                html.P(f"Collected {new_posts} new posts")
+            ], color="success", dismissable=True)
+        except Exception as e:
+            return dbc.Alert(f"❌ Medium Error: {str(e)}", color="danger")
+    
+    def _collect_stackoverflow(self):
+        """Collect from Stack Overflow"""
+        try:
+            from data_collection.stackoverflow_crawler import StackOverflowCrawler
+            from analysis.sentiment_analyzer import SentimentAnalyzer
+            
+            crawler = StackOverflowCrawler(self.db)
+            initial_count = self.posts_collection.count_documents({})
+            
+            crawler.collect_topics(['machine-learning', 'artificial-intelligence'], max_results_per_tag=15)
+            
+            final_count = self.posts_collection.count_documents({})
+            new_posts = final_count - initial_count
+            
+            analyzer = SentimentAnalyzer(self.db)
+            analyzer.analyze_all_posts()
+            
+            return dbc.Alert([
+                html.H5("✅ Stack Overflow Collection Complete!", className="alert-heading"),
+                html.P(f"Collected {new_posts} new posts")
+            ], color="success", dismissable=True)
+        except Exception as e:
+            return dbc.Alert(f"❌ Stack Overflow Error: {str(e)}", color="danger")
+    
+    def _collect_hackernews(self):
+        """Collect from Hacker News"""
+        try:
+            from data_collection.hackernews_crawler import HackerNewsCrawler
+            from analysis.sentiment_analyzer import SentimentAnalyzer
+            
+            crawler = HackerNewsCrawler(self.db)
+            initial_count = self.posts_collection.count_documents({})
+            
+            crawler.collect_topics(['AI education', 'EdTech'], max_results_per_query=10)
+            
+            final_count = self.posts_collection.count_documents({})
+            new_posts = final_count - initial_count
+            
+            analyzer = SentimentAnalyzer(self.db)
+            analyzer.analyze_all_posts()
+            
+            return dbc.Alert([
+                html.H5("✅ Hacker News Collection Complete!", className="alert-heading"),
+                html.P(f"Collected {new_posts} new posts")
+            ], color="success", dismissable=True)
+        except Exception as e:
+            return dbc.Alert(f"❌ Hacker News Error: {str(e)}", color="danger")
+    
+    def _collect_all_sources(self):
+        """Collect from all sources"""
+        try:
+            initial_count = self.posts_collection.count_documents({})
+            results = []
+            
+            # Collect from each source
+            sources = [
+                ('Google News', self._collect_google_news),
+                ('Reddit', self._collect_reddit),
+                ('Medium', self._collect_medium),
+                ('Stack Overflow', self._collect_stackoverflow),
+                ('Hacker News', self._collect_hackernews)
+            ]
+            
+            for source_name, collect_func in sources:
+                try:
+                    collect_func()
+                    results.append(f"✅ {source_name}")
+                except Exception as e:
+                    results.append(f"❌ {source_name}: {str(e)[:50]}")
+            
+            final_count = self.posts_collection.count_documents({})
+            total_new = final_count - initial_count
+            
+            return dbc.Alert([
+                html.H5("🚀 All Sources Collection Complete!", className="alert-heading"),
+                html.P(f"Total new posts: {total_new}"),
+                html.Hr(),
+                html.Ul([html.Li(result) for result in results])
+            ], color="success", dismissable=True)
+        except Exception as e:
+            return dbc.Alert(f"❌ All Sources Error: {str(e)}", color="danger")
+    
+    def _collect_custom(self, source, count, keywords):
+        """Custom collection based on parameters"""
+        try:
+            from analysis.sentiment_analyzer import SentimentAnalyzer
+            
+            # Validate parameters
+            if not count or count <= 0:
+                count = 20  # Default value
+            if count > 200:
+                count = 200  # Max limit
+            
+            initial_count = self.posts_collection.count_documents({})
+            keywords_list = [k.strip() for k in keywords.split(',')]
+            per_keyword = max(1, count // len(keywords_list))
+            
+            if source == 'google':
+                from data_collection.google_news_crawler import GoogleNewsCrawler
+                crawler = GoogleNewsCrawler(self.db)
+                crawler.collect_topics(keywords_list, max_results_per_query=per_keyword)
+            elif source == 'reddit':
+                from data_collection.reddit_crawler import RedditCrawler
+                crawler = RedditCrawler(
+                    db=self.db,
+                    client_id=os.getenv('REDDIT_CLIENT_ID', 'k6ozqL3mwwC0cGNUSmcdlQ'),
+                    client_secret=os.getenv('REDDIT_CLIENT_SECRET', 'JR6XLrrWpp2oNi5RNk0uV2GrrCaelw'),
+                    user_agent=os.getenv('REDDIT_USER_AGENT', 'windows:ai-trend-collector:v2.0')
+                )
+                crawler.collect_topics(keywords_list, limit_per_topic=per_keyword)
+            elif source == 'medium':
+                from data_collection.medium_crawler import MediumCrawler
+                crawler = MediumCrawler(self.db)
+                crawler.collect_topics(keywords_list, max_results_per_tag=per_keyword)
+            elif source == 'stackoverflow':
+                from data_collection.stackoverflow_crawler import StackOverflowCrawler
+                crawler = StackOverflowCrawler(self.db)
+                crawler.collect_topics(keywords_list, max_results_per_tag=per_keyword)
+            elif source == 'hackernews':
+                from data_collection.hackernews_crawler import HackerNewsCrawler
+                crawler = HackerNewsCrawler(self.db)
+                crawler.collect_topics(keywords_list, max_results_per_query=per_keyword)
+            
+            final_count = self.posts_collection.count_documents({})
+            new_posts = final_count - initial_count
+            
+            analyzer = SentimentAnalyzer(self.db)
+            analyzer.analyze_all_posts()
+            
+            return dbc.Alert([
+                html.H5(f"✅ Custom Collection Complete!", className="alert-heading"),
+                html.P(f"Source: {source.title()}"),
+                html.P(f"Keywords: {keywords}"),
+                html.P(f"Collected: {new_posts} new posts")
+            ], color="success", dismissable=True)
+        except Exception as e:
+            return dbc.Alert(f"❌ Custom Collection Error: {str(e)}", color="danger")
     
     def run(self, debug=True, port=8055):
         """Run the dashboard"""
@@ -1101,9 +1687,9 @@ class DashboardApp:
         print(f"Dashboard URL: http://127.0.0.1:{port}")
         print(f"Features:")
         print(f"   - Overview Tab: Enhanced data visualization")
-        print(f"   - Monthly Analysis: Trends by month")
-        print(f"   - Recent Posts Table: 20 newest posts with sentiment")
+        print(f"   - Auto Crawler Tab: Automated data collection from all sources")
         print(f"   - URL Crawler Tab: Import content from URLs")
+        print(f"   - Real-time collection status and history")
         print(f"   - Auto-refresh: Every 30 seconds")
         print("="*60 + "\n")
         try:

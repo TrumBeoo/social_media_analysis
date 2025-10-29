@@ -26,7 +26,7 @@ class URLCrawler:
         }
     
     def crawl_url(self, url, topic=None):
-        """Thu thập nội dung từ URL"""
+        """Thu thập nội dung từ URL với logging cải tiến"""
         # Kiểm tra URL đã được crawl chưa
         url_hash = hashlib.md5(url.encode()).hexdigest()
         cached = self.url_cache_collection.find_one({'url_hash': url_hash})
@@ -40,6 +40,9 @@ class URLCrawler:
             response = requests.get(url, headers=self.headers, timeout=15)
             response.raise_for_status()
             
+            print(f" Response status: {response.status_code}")
+            print(f" Content length: {len(response.text)} characters")
+            
             # Xác định platform
             domain = urlparse(url).netloc.lower()
             platform = self._identify_platform(domain)
@@ -49,13 +52,30 @@ class URLCrawler:
             parser = self.supported_platforms.get(platform, self.supported_platforms['generic'])
             post_data = parser(response.text, url)
             
+            # Debug: Kiểm tra nội dung đã extract
+            text_length = len(post_data.get('text', ''))
+            title_length = len(post_data.get('title', ''))
+            print(f" Extracted - Title: {title_length} chars, Text: {text_length} chars")
+            
+            if text_length == 0:
+                print(f" ⚠️ Warning: No text content extracted from {url}")
+                # Try fallback extraction
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(response.text, 'html.parser')
+                fallback_text = soup.get_text(separator=' ', strip=True)[:500]
+                if fallback_text:
+                    post_data['text'] = f"[Fallback extraction] {fallback_text}"
+                    print(f" Applied fallback extraction: {len(fallback_text)} chars")
+            
             # Bổ sung metadata
             post_data.update({
                 'source': f'url_crawler_{platform}',
                 'source_url': url,
                 'topic': topic or 'url_imported',
                 'collected_at': datetime.now(),
-                'crawl_method': 'url_direct'
+                'crawl_method': 'url_direct',
+                'response_status': response.status_code,
+                'content_length': len(response.text)
             })
             
             # Lưu vào database
@@ -68,17 +88,22 @@ class URLCrawler:
                 'url_hash': url_hash,
                 'post_id': post_id,
                 'crawled_at': datetime.now(),
-                'platform': platform
+                'platform': platform,
+                'text_length': text_length,
+                'title_length': title_length
             })
             
-            print(f" Successfully crawled and saved!")
+            print(f" ✅ Successfully crawled and saved! Post ID: {post_id}")
+            print(f" Final content - Title: '{post_data.get('title', '')[:50]}...', Text: {len(post_data.get('text', ''))} chars")
             return post_id
             
         except requests.exceptions.RequestException as e:
-            print(f" Network error: {e}")
+            print(f" ❌ Network error: {e}")
             return None
         except Exception as e:
-            print(f" Error crawling {url}: {e}")
+            print(f" ❌ Error crawling {url}: {e}")
+            import traceback
+            print(f" Traceback: {traceback.format_exc()}")
             return None
     
     def _identify_platform(self, domain):
@@ -89,106 +114,240 @@ class URLCrawler:
         return 'generic'
     
     def _parse_twitter(self, html, url):
-        """Parse Twitter content"""
+        """Parse Twitter content with improved extraction"""
         soup = BeautifulSoup(html, 'html.parser')
         
-        # Extract tweet content
-        text = self._extract_meta_content(soup, 'og:description') or \
-               self._extract_meta_content(soup, 'twitter:description') or \
-               self._extract_meta_content(soup, 'description') or ''
+        # Extract tweet content from multiple sources
+        text = (self._extract_meta_content(soup, 'og:description') or 
+               self._extract_meta_content(soup, 'twitter:description') or 
+               self._extract_meta_content(soup, 'description') or '')
+        
+        # Try to get more content from page structure
+        if not text or len(text) < 10:
+            tweet_selectors = [
+                '[data-testid="tweetText"]',
+                '.tweet-text',
+                '.js-tweet-text',
+                '.TweetTextSize'
+            ]
+            
+            for selector in tweet_selectors:
+                tweet_element = soup.select_one(selector)
+                if tweet_element:
+                    text = tweet_element.get_text(strip=True)
+                    break
         
         # Extract hashtags
-        hashtags = re.findall(r'#(\w+)', text)
+        hashtags = re.findall(r'#(\w+)', text) if text else []
+        
+        title = self._extract_meta_content(soup, 'og:title') or 'Twitter Post'
         
         return {
-            'text': text,
-            'title': self._extract_meta_content(soup, 'og:title') or 'Twitter Post',
+            'text': text or 'No tweet content extracted',
+            'title': title,
             'created_at': datetime.now(),
             'likes': 0,
             'retweets': 0,
             'replies': 0,
             'hashtags': hashtags,
-            'platform': 'twitter'
+            'platform': 'twitter',
+            'url': url
         }
     
     def _parse_reddit(self, html, url):
-        """Parse Reddit content"""
+        """Parse Reddit content with improved extraction"""
         soup = BeautifulSoup(html, 'html.parser')
         
         title = self._extract_meta_content(soup, 'og:title') or ''
         description = self._extract_meta_content(soup, 'og:description') or ''
         
-        # Combine title and description
-        full_text = f"{title}\n\n{description}" if description else title
+        # Try to get post content from Reddit structure
+        content_selectors = [
+            '[data-testid="post-content"]',
+            '.usertext-body',
+            '.md',
+            '.Post',
+            '[data-click-id="text"]'
+        ]
+        
+        post_content = ""
+        for selector in content_selectors:
+            content_element = soup.select_one(selector)
+            if content_element:
+                post_content = content_element.get_text(separator=' ', strip=True)
+                break
+        
+        # Combine all content
+        full_text_parts = []
+        if title:
+            full_text_parts.append(title)
+        if post_content:
+            full_text_parts.append(post_content)
+        elif description:
+            full_text_parts.append(description)
+        
+        full_text = '\n\n'.join(full_text_parts) if full_text_parts else 'No content extracted'
         
         return {
-            'title': title,
+            'title': title or 'Reddit Post',
             'text': full_text,
             'created_at': datetime.now(),
             'score': 0,
             'num_comments': 0,
-            'platform': 'reddit'
+            'platform': 'reddit',
+            'url': url
         }
     
     def _parse_facebook(self, html, url):
-        """Parse Facebook content"""
+        """Parse Facebook content with improved extraction"""
         soup = BeautifulSoup(html, 'html.parser')
         
+        text = (self._extract_meta_content(soup, 'og:description') or 
+               self._extract_meta_content(soup, 'twitter:description') or
+               self._extract_meta_content(soup, 'description') or '')
+        
+        title = self._extract_meta_content(soup, 'og:title') or 'Facebook Post'
+        
+        # Try to get more content if available
+        if not text or len(text) < 20:
+            content_selectors = [
+                '[data-testid="post_message"]',
+                '.userContent',
+                '.text_exposed_root'
+            ]
+            
+            for selector in content_selectors:
+                content_element = soup.select_one(selector)
+                if content_element:
+                    text = content_element.get_text(strip=True)
+                    break
+        
         return {
-            'text': self._extract_meta_content(soup, 'og:description') or '',
-            'title': self._extract_meta_content(soup, 'og:title') or 'Facebook Post',
+            'text': text or 'No content extracted',
+            'title': title,
             'created_at': datetime.now(),
             'likes': 0,
-            'platform': 'facebook'
+            'platform': 'facebook',
+            'url': url
         }
     
     def _parse_medium(self, html, url):
-        """Parse Medium article"""
+        """Parse Medium article with improved extraction"""
         soup = BeautifulSoup(html, 'html.parser')
         
-        # Medium specific parsing
-        article = soup.find('article')
-        if article:
-            text = article.get_text(separator=' ', strip=True)
-        else:
+        # Medium specific selectors
+        content_selectors = [
+            'article',
+            '[data-testid="storyContent"]',
+            '.postArticle-content',
+            '.section-content',
+            '.story-content'
+        ]
+        
+        text = ""
+        for selector in content_selectors:
+            content = soup.select_one(selector)
+            if content:
+                # Remove unwanted elements
+                for unwanted in content.find_all(['script', 'style', 'nav', 'footer']):
+                    unwanted.decompose()
+                text = content.get_text(separator=' ', strip=True)
+                break
+        
+        # Fallback to meta description
+        if not text or len(text) < 50:
             text = self._extract_meta_content(soup, 'og:description') or ''
         
-        return {
-            'title': self._extract_meta_content(soup, 'og:title') or 'Medium Article',
-            'text': text[:2000],  # Giới hạn độ dài
-            'created_at': datetime.now(),
-            'platform': 'medium',
-            'author': self._extract_meta_content(soup, 'author') or 'Unknown'
-        }
-    
-    def _parse_generic(self, html, url):
-        """Parse generic webpage"""
-        soup = BeautifulSoup(html, 'html.parser')
-        
-        # Remove script and style elements
-        for script in soup(["script", "style", "nav", "footer", "header"]):
-            script.decompose()
-        
-        # Try to find main content
-        main_content = soup.find('main') or soup.find('article') or soup.find('div', class_='content')
-        
-        if main_content:
-            text = main_content.get_text(separator=' ', strip=True)
-        else:
-            text = soup.get_text(separator=' ', strip=True)
-        
         # Clean text
-        text = re.sub(r'\s+', ' ', text)[:2000]
+        text = re.sub(r'\s+', ' ', text).strip()
+        if len(text) > 3000:
+            text = text[:3000] + "..."
         
-        # Extract title
-        title = self._extract_meta_content(soup, 'og:title') or \
-                (soup.title.string if soup.title else 'Untitled')
+        title = self._extract_meta_content(soup, 'og:title') or 'Medium Article'
+        author = self._extract_meta_content(soup, 'author') or 'Unknown'
         
         return {
             'title': title,
-            'text': text,
+            'text': text or 'No content extracted',
             'created_at': datetime.now(),
-            'platform': 'web'
+            'platform': 'medium',
+            'author': author,
+            'url': url
+        }
+    
+    def _parse_generic(self, html, url):
+        """Parse generic webpage with improved content extraction"""
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Remove unwanted elements
+        for element in soup(["script", "style", "nav", "footer", "header", "aside", "noscript"]):
+            element.decompose()
+        
+        # Try multiple strategies to find main content
+        content_selectors = [
+            'main',
+            'article', 
+            '[role="main"]',
+            '.content',
+            '.post-content',
+            '.entry-content',
+            '.article-content',
+            '.story-body',
+            '.post-body',
+            '#content',
+            '#main-content'
+        ]
+        
+        text = ""
+        title = ""
+        
+        # Try to find main content using selectors
+        for selector in content_selectors:
+            main_content = soup.select_one(selector)
+            if main_content:
+                text = main_content.get_text(separator=' ', strip=True)
+                break
+        
+        # Fallback: get all paragraph text
+        if not text or len(text) < 50:
+            paragraphs = soup.find_all('p')
+            text = ' '.join([p.get_text(strip=True) for p in paragraphs if p.get_text(strip=True)])
+        
+        # Final fallback: get all text
+        if not text or len(text) < 20:
+            text = soup.get_text(separator=' ', strip=True)
+        
+        # Clean and limit text
+        text = re.sub(r'\s+', ' ', text).strip()
+        if len(text) > 3000:
+            text = text[:3000] + "..."
+        
+        # Extract title with multiple fallbacks
+        title = (self._extract_meta_content(soup, 'og:title') or 
+                self._extract_meta_content(soup, 'twitter:title') or
+                (soup.title.string.strip() if soup.title and soup.title.string else '') or
+                soup.find('h1').get_text(strip=True) if soup.find('h1') else 'Untitled')
+        
+        # Clean title
+        if title:
+            title = re.sub(r'\s+', ' ', title).strip()[:200]
+        
+        # Extract description
+        description = (self._extract_meta_content(soup, 'og:description') or
+                      self._extract_meta_content(soup, 'twitter:description') or
+                      self._extract_meta_content(soup, 'description') or '')
+        
+        # If text is still empty, use description
+        if not text and description:
+            text = description
+        
+        return {
+            'title': title or 'Untitled',
+            'text': text or 'No content extracted',
+            'description': description,
+            'created_at': datetime.now(),
+            'platform': 'web',
+            'url': url
         }
     
     def _extract_meta_content(self, soup, property_name):
@@ -207,7 +366,12 @@ class URLCrawler:
                 results.append({'url': url, 'post_id': post_id, 'success': post_id is not None})
         
         success_count = sum(1 for r in results if r['success'])
-        print(f"\n Crawled {success_count}/{len(results)} URLs successfully")
+        print(f"\n ✅ Crawled {success_count}/{len(results)} URLs successfully")
+        
+        # Show detailed results
+        for result in results:
+            status = "✅" if result['success'] else "❌"
+            print(f"   {status} {result['url'][:60]}...")
         return results
     
     def crawl_from_file(self, filepath, topic=None):
@@ -216,11 +380,11 @@ class URLCrawler:
             with open(filepath, 'r', encoding='utf-8') as f:
                 urls = [line.strip() for line in f if line.strip()]
             
-            print(f" Found {len(urls)} URLs in file")
+            print(f" 📄 Found {len(urls)} URLs in file: {filepath}")
             return self.crawl_multiple_urls(urls, topic)
         except FileNotFoundError:
-            print(f" File not found: {filepath}")
+            print(f" ❌ File not found: {filepath}")
             return []
         except Exception as e:
-            print(f"Error reading file: {e}")
+            print(f" ❌ Error reading file: {e}")
             return []
